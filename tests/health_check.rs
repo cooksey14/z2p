@@ -1,3 +1,5 @@
+// You can inspect what code gets generated using
+//`cargo expand --test health_check`(<- name of the test file)
 
 #[actix_rt::test]
 async fn health_check_works() {
