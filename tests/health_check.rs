@@ -1,28 +1,31 @@
-// You can inspect what code gets generated using
-//`cargo expand --test health_check`(<- name of the test file)
+use actix_rt::net::TcpListener;
+use z2p::run;
+
+fn spawn_app() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").except("Failed to bind random port");
+    // We retrieve the port assigned to us by the OS
+    let port = listener.local_addr().unwrap.port();
+    let server = run(listener).except("Fafiled to bind address");
+    let _ = tokio::spawn(server);
+    //We return the application address to the caller!
+    format!("http://127.0.0.1:{}", port)
+}
 
 #[actix_rt::test]
 async fn health_check_works() {
+    // Arrange
+    let address = spawn_app();
     let client = reqwest::Client::new();
-    spawn_app();
 
-    //Act
-    let response = client 
-    .get("http://127.0.0.1:8080/health_check")
-    .send()
-    .await
-    .expect("Failed to execute request");
+    // Act
+    let response = client
+        // Use the returned application address
+        .get(&format!("{}/health_check", &address))
+        .send()
+        .await
+        .expect("Failed to execute request.");
 
-    //Assert
+    // Assert
     assert!(response.status().is_success());
     assert_eq!(Some(0), response.content_length());
-    
 }
-
-//Launch our application in the background
-
- fn spawn_app() {
-    let server = z2p::run().expect("failed to bind address");
-    let _ = tokio::spawn(server);
-}
-
